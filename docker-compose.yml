@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: happy-pharmacy-pg-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: happy_dev
+      POSTGRES_PASSWORD: happy_dev_local
+      POSTGRES_DB: happy_pharmacy_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - happy_pharmacy_pg_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U happy_dev -d happy_pharmacy_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  happy_pharmacy_pg_dev:

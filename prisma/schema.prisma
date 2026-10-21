@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Shop-by-need shelf. Optional parent supports later nested navigation.
+model Category {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  description String     @default("")
+  parentId    String?
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryHierarchy")
+  sortOrder   Int        @default(0)
+  products    Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([parentId])
+  @@index([sortOrder])
+  @@index([name])
+}
+
+model Brand {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([name])
+}
+
+/// How the product may be sold later. Checkout is not enabled in this app.
+enum ProductClassification {
+  GENERAL_RETAIL
+  OTC
+  PRESCRIPTION_REVIEW
+}
+
+enum StockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  NOT_TRACKED
+}
+
+/// CATALOGUE is the only visibility returned by public read helpers.
+enum ProductVisibility {
+  DRAFT
+  CATALOGUE
+  HIDDEN
+}
+
+model Product {
+  id             String                 @id @default(cuid())
+  slug           String                 @unique
+  sku            String                 @unique
+  name           String
+  description    String                 @default("")
+  /// Name, description and attribute tokens used for catalogue search.
+  searchText     String                 @default("")
+  classification ProductClassification
+  /// Integer PKR minor units (paisa). 100 = Rs 1. Never a float.
+  pricePkrMinor  Int
+  stockStatus    StockStatus            @default(NOT_TRACKED)
+  visibility     ProductVisibility      @default(DRAFT)
+  categoryId     String
+  category       Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brandId        String
+  brand          Brand                  @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  images         ProductImage[]
+  attributes     ProductAttribute[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([categoryId, visibility])
+  @@index([brandId])
+  @@index([visibility, classification])
+  @@index([stockStatus])
+  @@index([name])
+  @@index([searchText])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String
+  sortOrder Int      @default(0)
+  /// Pixel width from the structured import. Optional until a photo is supplied.
+  width     Int?
+  /// Pixel height from the structured import. Optional until a photo is supplied.
+  height    Int?
+  /// Cloudinary public ID. This is a delivery identifier, never an API secret.
+  publicId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, sortOrder])
+}
+
+model ProductAttribute {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, name])
+  @@index([name, value])
+}

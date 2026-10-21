@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
+import { cloudinaryImageRemotePatterns } from "./lib/cloudinary";
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: cloudinaryImageRemotePatterns(),
+  },
 };
 
 export default nextConfig;
